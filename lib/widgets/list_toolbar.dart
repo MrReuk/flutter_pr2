@@ -1,0 +1,119 @@
+import 'package:flutter/material.dart';
+
+import 'debounced_text_field.dart';
+
+class ListToolbar extends StatefulWidget {
+  const ListToolbar({
+    super.key,
+    required this.search,
+    required this.searchLabel,
+    required this.onSearch,
+    required this.filters,
+    required this.activeFilterCount,
+    required this.onReset,
+    this.initiallyOpen = false,
+  });
+
+  final String search;
+  final String searchLabel;
+  final ValueChanged<String> onSearch;
+  final List<Widget> filters;
+  final int activeFilterCount;
+  final VoidCallback onReset;
+  final bool initiallyOpen;
+
+  @override
+  State<ListToolbar> createState() => _ListToolbarState();
+}
+
+class _ListToolbarState extends State<ListToolbar> {
+  bool _open = false;
+  bool _initialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      _open = widget.initiallyOpen || MediaQuery.sizeOf(context).width >= 900;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final count = widget.activeFilterCount;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: DebouncedTextField(
+                  value: widget.search,
+                  onChanged: widget.onSearch,
+                  decoration: InputDecoration(
+                    labelText: widget.searchLabel,
+                    prefixIcon: const Icon(Icons.search),
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: () => setState(() => _open = !_open),
+                icon: Icon(_open ? Icons.expand_less : Icons.tune),
+                label: Text(count > 0 ? 'Фильтры ($count)' : 'Фильтры'),
+              ),
+            ],
+          ),
+          if (_open) ...[
+            const SizedBox(height: 12),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.4,
+              ),
+              child: SingleChildScrollView(
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    ...widget.filters,
+                    TextButton.icon(
+                      onPressed: widget.onReset,
+                      icon: const Icon(Icons.clear),
+                      label: const Text('Сбросить'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class DeletedSwitch extends StatelessWidget {
+  const DeletedSwitch({super.key, required this.value, required this.onChanged});
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Switch(value: value, onChanged: onChanged),
+        const SizedBox(width: 8),
+        const Text('Показывать удалённые'),
+      ],
+    );
+  }
+}
