@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 
 class DetailLayout extends StatelessWidget {
-  const DetailLayout({super.key, required this.title, required this.children});
+  const DetailLayout({
+    super.key,
+    required this.title,
+    required this.children,
+    this.actions = const [],
+  });
 
   final String title;
   final List<Widget> children;
+  final List<Widget> actions;
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +28,10 @@ class DetailLayout extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(title, style: Theme.of(context).textTheme.headlineSmall),
+                    if (actions.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Wrap(spacing: 8, runSpacing: 8, children: actions),
+                    ],
                     const SizedBox(height: 12),
                     ...children,
                   ],

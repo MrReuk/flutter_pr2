@@ -12,6 +12,8 @@ class ListToolbar extends StatefulWidget {
     required this.activeFilterCount,
     required this.onReset,
     this.initiallyOpen = false,
+    this.onAdd,
+    this.addLabel = 'Добавить',
   });
 
   final String search;
@@ -21,6 +23,8 @@ class ListToolbar extends StatefulWidget {
   final int activeFilterCount;
   final VoidCallback onReset;
   final bool initiallyOpen;
+  final VoidCallback? onAdd;
+  final String addLabel;
 
   @override
   State<ListToolbar> createState() => _ListToolbarState();
@@ -42,6 +46,7 @@ class _ListToolbarState extends State<ListToolbar> {
   @override
   Widget build(BuildContext context) {
     final count = widget.activeFilterCount;
+    final narrow = MediaQuery.sizeOf(context).width < 600;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Column(
@@ -68,6 +73,21 @@ class _ListToolbarState extends State<ListToolbar> {
                 icon: Icon(_open ? Icons.expand_less : Icons.tune),
                 label: Text(count > 0 ? 'Фильтры ($count)' : 'Фильтры'),
               ),
+              if (widget.onAdd != null) ...[
+                const SizedBox(width: 8),
+                if (narrow)
+                  IconButton.filled(
+                    tooltip: widget.addLabel,
+                    onPressed: widget.onAdd,
+                    icon: const Icon(Icons.add),
+                  )
+                else
+                  FilledButton.icon(
+                    onPressed: widget.onAdd,
+                    icon: const Icon(Icons.add),
+                    label: Text(widget.addLabel),
+                  ),
+              ],
             ],
           ),
           if (_open) ...[

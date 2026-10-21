@@ -1,14 +1,23 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:library_app/models/book.dart';
 import 'package:library_app/models/book_query.dart';
-import 'package:library_app/repositories/in_memory_book_repository.dart';
-import 'package:library_app/state/book_list_notifier.dart';
+import 'package:library_app/models/publisher.dart';
+import 'package:library_app/models/simple_query.dart';
 import 'package:library_app/state/load_status.dart';
+import 'package:library_app/state/paged_list_notifier.dart';
+
+import 'test_helpers.dart';
 
 void main() {
-  late BookListNotifier notifier;
+  late PagedListNotifier<Book, BookQuery> notifier;
 
-  setUp(() {
-    notifier = BookListNotifier(InMemoryBookRepository(delay: Duration.zero));
+  setUp(() async {
+    final repos = await makeRepositories();
+    notifier = PagedListNotifier<Book, BookQuery>(
+      initialQuery: const BookQuery(),
+      repository: repos.books,
+      idOf: (book) => book.id,
+    );
   });
 
   tearDown(() => notifier.dispose());
@@ -55,9 +64,10 @@ void main() {
     notifier.toggleSelection(1);
     notifier.toggleSelection(2);
 
-    final count = await notifier.deleteSelected();
+    final summary = await notifier.deleteSelected();
 
-    expect(count, 2);
+    expect(summary.requested, 2);
+    expect(summary.deleted, 2);
     expect(notifier.hasSelection, isFalse);
     expect(notifier.result.total, before - 2);
   });
@@ -70,5 +80,26 @@ void main() {
 
     notifier.setAllSelected(false);
     expect(notifier.hasSelection, isFalse);
+  });
+
+  test('Отказ в удалении возвращает сообщение и не ломает список', () async {
+    final repos = await makeRepositories();
+    final publishers = PagedListNotifier<Publisher, SimpleQuery>(
+      initialQuery: SimpleQuery.initial(
+        sortFields: kPublisherSortFields,
+        defaultSort: 'name',
+      ),
+      repository: repos.publishers,
+      idOf: (publisher) => publisher.id,
+    );
+    addTearDown(publishers.dispose);
+
+    await publishers.load();
+    final problem = await publishers.softDelete(4);
+
+    expect(problem, isNotNull);
+    expect(problem, contains('есть книги'));
+    expect(publishers.status, LoadStatus.success);
+    expect(publishers.result.items.any((p) => p.id == 4), isTrue);
   });
 }

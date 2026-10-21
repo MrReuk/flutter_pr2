@@ -1,30 +1,26 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/page_result.dart';
+import '../repositories/entity_repository.dart';
+import '../repositories/repository_exception.dart';
 import 'load_status.dart';
+
+typedef DeleteSummary = ({int requested, int deleted});
+
+String describeError(Object error) {
+  return error is RepositoryException ? error.message : '$error';
+}
 
 class PagedListNotifier<T, Q> extends ChangeNotifier {
   PagedListNotifier({
     required Q initialQuery,
-    required Future<PageResult<T>> Function(Q query) find,
-    required Future<int> Function(List<int> ids) deleteMany,
-    required Future<void> Function(int id) softDelete,
-    required Future<void> Function(int id) hardDelete,
-    required Future<void> Function(int id) restore,
+    required EntityRepository<T, Q> repository,
     required int Function(T item) idOf,
   })  : _query = initialQuery,
-        _find = find,
-        _deleteMany = deleteMany,
-        _softDelete = softDelete,
-        _hardDelete = hardDelete,
-        _restore = restore,
+        _repository = repository,
         _idOf = idOf;
 
-  final Future<PageResult<T>> Function(Q query) _find;
-  final Future<int> Function(List<int> ids) _deleteMany;
-  final Future<void> Function(int id) _softDelete;
-  final Future<void> Function(int id) _hardDelete;
-  final Future<void> Function(int id) _restore;
+  final EntityRepository<T, Q> _repository;
   final int Function(T item) _idOf;
 
   Q _query;
@@ -49,13 +45,13 @@ class PagedListNotifier<T, Q> extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final loaded = await _find(_query);
+      final loaded = await _repository.find(_query);
       if (requestId != _requestId) return;
       _result = loaded;
       _status = LoadStatus.success;
     } catch (e) {
       if (requestId != _requestId) return;
-      _error = 'Не удалось загрузить список: $e';
+      _error = 'Не удалось загрузить список: ${describeError(e)}';
       _status = LoadStatus.error;
     }
     notifyListeners();
@@ -88,39 +84,34 @@ class PagedListNotifier<T, Q> extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> softDelete(int id) => _perform(() => _softDelete(id), id);
+  Future<String?> softDelete(int id) => _perform(() => _repository.softDelete(id), id);
 
-  Future<void> hardDelete(int id) => _perform(() => _hardDelete(id), id);
+  Future<String?> hardDelete(int id) => _perform(() => _repository.hardDelete(id), id);
 
-  Future<void> restore(int id) => _perform(() => _restore(id), id);
+  Future<String?> restore(int id) => _perform(() => _repository.restore(id), id);
 
-  Future<int> deleteSelected() async {
+  Future<DeleteSummary> deleteSelected() async {
     final ids = _selected.toList();
     try {
-      final count = await _deleteMany(ids);
+      final count = await _repository.deleteMany(ids);
       _selected.clear();
       await load();
-      return count;
-    } catch (e) {
-      _fail(e);
-      return 0;
+      return (requested: ids.length, deleted: count);
+    } catch (_) {
+      await load();
+      return (requested: ids.length, deleted: 0);
     }
   }
 
-  Future<void> _perform(Future<void> Function() action, int id) async {
+  Future<String?> _perform(Future<void> Function() action, int id) async {
     try {
       await action();
-      _selected.remove(id);
-      await load();
     } catch (e) {
-      _fail(e);
+      return describeError(e);
     }
-  }
-
-  void _fail(Object e) {
-    _error = 'Не удалось выполнить операцию: $e';
-    _status = LoadStatus.error;
-    notifyListeners();
+    _selected.remove(id);
+    await load();
+    return null;
   }
 
   @override

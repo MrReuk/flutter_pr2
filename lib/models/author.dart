@@ -1,3 +1,5 @@
+import 'json_helpers.dart';
+
 class Author {
   final int id;
   final String firstName;
@@ -16,6 +18,28 @@ class Author {
     required this.biography,
     this.deletedAt,
   });
+
+  factory Author.fromJson(Map<String, dynamic> json) {
+    return Author(
+      id: jsonInt(json['id']),
+      firstName: jsonString(json['firstName']),
+      lastName: jsonString(json['lastName']),
+      country: jsonString(json['country']),
+      birthYear: jsonInt(json['birthYear']),
+      biography: jsonString(json['biography']),
+      deletedAt: jsonDate(json['deletedAt']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'firstName': firstName,
+        'lastName': lastName,
+        'country': country,
+        'birthYear': birthYear,
+        'biography': biography,
+        'deletedAt': deletedAt?.toIso8601String(),
+      };
 
   bool get isDeleted => deletedAt != null;
 

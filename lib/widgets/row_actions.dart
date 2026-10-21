@@ -6,16 +6,28 @@ List<Widget> buildRowActions(
   BuildContext context, {
   required bool deleted,
   required String name,
-  required Future<void> Function() onSoftDelete,
-  required Future<void> Function() onHardDelete,
-  required Future<void> Function() onRestore,
+  required VoidCallback onEdit,
+  required Future<String?> Function() onSoftDelete,
+  required Future<String?> Function() onHardDelete,
+  required Future<String?> Function() onRestore,
 }) {
+  Future<void> report(Future<String?> Function() action) async {
+    final problem = await action();
+    if (problem == null || !context.mounted) return;
+    await showNotice(context, title: 'Действие невозможно', message: problem);
+  }
+
   return [
+    IconButton(
+      tooltip: 'Изменить',
+      icon: const Icon(Icons.edit_outlined),
+      onPressed: onEdit,
+    ),
     if (deleted)
       IconButton(
         tooltip: 'Восстановить',
         icon: const Icon(Icons.restore),
-        onPressed: onRestore,
+        onPressed: () => report(onRestore),
       )
     else
       IconButton(
@@ -27,7 +39,7 @@ List<Widget> buildRowActions(
             title: 'Удалить запись?',
             message: '«$name» будет помечена как удалённая. Её можно восстановить.',
           );
-          if (confirmed) await onSoftDelete();
+          if (confirmed) await report(onSoftDelete);
         },
       ),
     IconButton(
@@ -43,7 +55,7 @@ List<Widget> buildRowActions(
           message: '«$name» будет стёрта без возможности восстановления.',
           confirmLabel: 'Удалить навсегда',
         );
-        if (confirmed) await onHardDelete();
+        if (confirmed) await report(onHardDelete);
       },
     ),
   ];

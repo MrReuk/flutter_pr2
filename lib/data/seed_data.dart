@@ -2,28 +2,29 @@ import '../models/author.dart';
 import '../models/book.dart';
 import '../models/genre.dart';
 import '../models/publisher.dart';
+import '../models/reader.dart';
 
 const List<Genre> seedGenres = [
-  Genre(1, 'Манга'),
-  Genre(2, 'Фэнтези'),
-  Genre(3, 'Финансы'),
-  Genre(4, 'Саморазвитие'),
-  Genre(5, 'Психология'),
-  Genre(6, 'Контркультура'),
-  Genre(7, 'Приключения'),
-  Genre(8, 'Хоррор'),
-  Genre(9, 'Постапокалипсис'),
+  Genre(id: 1, name: 'Манга', description: 'Японские комиксы: сёнэн, сэйнэн и другие направления.'),
+  Genre(id: 2, name: 'Фэнтези', description: 'Вымышленные миры, магия и приключения.'),
+  Genre(id: 3, name: 'Финансы', description: 'Деньги, инвестиции и финансовая грамотность.'),
+  Genre(id: 4, name: 'Саморазвитие', description: 'Привычки, продуктивность и личная эффективность.'),
+  Genre(id: 5, name: 'Психология', description: 'Поведение людей, влияние и убеждение.'),
+  Genre(id: 6, name: 'Контркультура', description: 'Романы о людях на границе общепринятых норм.'),
+  Genre(id: 7, name: 'Приключения', description: 'Путешествия и открытия неизведанного.'),
+  Genre(id: 8, name: 'Хоррор', description: 'Мрачные истории о страхе и насилии.'),
+  Genre(id: 9, name: 'Постапокалипсис', description: 'Мир после глобальной катастрофы.'),
 ];
 
 const List<Publisher> seedPublishers = [
-  Publisher(1, 'Истари Комикс'),
-  Publisher(2, 'Попурри'),
-  Publisher(3, 'МИФ'),
-  Publisher(4, 'АСТ'),
-  Publisher(5, 'Бомбора'),
-  Publisher(6, 'Питер'),
-  Publisher(7, 'Амфора'),
-  Publisher(8, 'Рипол Классик'),
+  Publisher(id: 1, name: 'Истари Комикс', country: 'Россия', foundedYear: 2013, email: 'info@istari.example'),
+  Publisher(id: 2, name: 'Попурри', country: 'Беларусь', foundedYear: 1991, email: 'office@popurri.example'),
+  Publisher(id: 3, name: 'МИФ', country: 'Россия', foundedYear: 2005, email: 'hello@mif.example'),
+  Publisher(id: 4, name: 'АСТ', country: 'Россия', foundedYear: 1990, email: 'mail@ast.example'),
+  Publisher(id: 5, name: 'Бомбора', country: 'Россия', foundedYear: 2016, email: 'books@bombora.example'),
+  Publisher(id: 6, name: 'Питер', country: 'Россия', foundedYear: 1991, email: 'order@piter.example'),
+  Publisher(id: 7, name: 'Амфора', country: 'Россия', foundedYear: 1996, email: 'info@amphora.example'),
+  Publisher(id: 8, name: 'Рипол Классик', country: 'Россия', foundedYear: 1992, email: 'sales@ripol.example'),
 ];
 
 const List<Author> seedAuthors = [
@@ -76,4 +77,17 @@ const List<Book> seedBooks = [
   Book(id: 24, title: 'Глубокая работа', isbn: '978-5-00146-024-4', year: 2016, pages: 296, publisherId: 3, authorIds: [20], genreIds: [4], copiesTotal: 4, copiesAvailable: 0),
   Book(id: 25, title: 'Богатый папа. Руководство по инвестированию', isbn: '978-985-15-0025-7', year: 2000, pages: 400, publisherId: 2, authorIds: [9], genreIds: [3], copiesTotal: 4, copiesAvailable: 2),
   Book(id: 26, title: 'Берсерк. Том 2', isbn: '978-5-6040-0026-4', year: 1990, pages: 224, publisherId: 1, authorIds: [1], genreIds: [1, 2], copiesTotal: 6, copiesAvailable: 5),
+];
+
+final List<Reader> seedReaders = [
+  Reader(id: 1, firstName: 'Артём', lastName: 'Волков', email: 'volkov.artem@example.com', phone: '+7 900 111-22-01', card: LibraryCard(number: 'LC-2025-001', issuedAt: DateTime(2025, 9, 1), expiresAt: DateTime(2027, 9, 1))),
+  Reader(id: 2, firstName: 'Дарья', lastName: 'Смирнова', email: 'smirnova.darya@example.com', phone: '+7 900 111-22-02', card: LibraryCard(number: 'LC-2025-002', issuedAt: DateTime(2025, 9, 3), expiresAt: DateTime(2027, 9, 3))),
+  Reader(id: 3, firstName: 'Максим', lastName: 'Кузнецов', email: 'kuznetsov.maxim@example.com', phone: '+7 900 111-22-03', card: LibraryCard(number: 'LC-2025-003', issuedAt: DateTime(2025, 9, 5), expiresAt: DateTime(2027, 9, 5))),
+  Reader(id: 4, firstName: 'Алиса', lastName: 'Попова', email: 'popova.alisa@example.com', phone: '+7 900 111-22-04', card: LibraryCard(number: 'LC-2024-004', issuedAt: DateTime(2024, 2, 10), expiresAt: DateTime(2025, 2, 10))),
+  Reader(id: 5, firstName: 'Кирилл', lastName: 'Лебедев', email: 'lebedev.kirill@example.com', phone: '+7 900 111-22-05', card: LibraryCard(number: 'LC-2025-005', issuedAt: DateTime(2025, 10, 12), expiresAt: DateTime(2027, 10, 12))),
+  Reader(id: 6, firstName: 'Мария', lastName: 'Соколова', email: 'sokolova.maria@example.com', phone: '+7 900 111-22-06', card: LibraryCard(number: 'LC-2025-006', issuedAt: DateTime(2025, 11, 2), expiresAt: DateTime(2027, 11, 2))),
+  Reader(id: 7, firstName: 'Егор', lastName: 'Новиков', email: 'novikov.egor@example.com', phone: '+7 900 111-22-07', card: LibraryCard(number: 'LC-2024-007', issuedAt: DateTime(2024, 3, 15), expiresAt: DateTime(2025, 3, 15))),
+  Reader(id: 8, firstName: 'Полина', lastName: 'Морозова', email: 'morozova.polina@example.com', phone: '+7 900 111-22-08', card: LibraryCard(number: 'LC-2025-008', issuedAt: DateTime(2025, 12, 8), expiresAt: DateTime(2027, 12, 8))),
+  Reader(id: 9, firstName: 'Никита', lastName: 'Орлов', email: 'orlov.nikita@example.com', phone: '+7 900 111-22-09', card: LibraryCard(number: 'LC-2026-009', issuedAt: DateTime(2026, 1, 20), expiresAt: DateTime(2028, 1, 20))),
+  Reader(id: 10, firstName: 'София', lastName: 'Белова', email: 'belova.sofia@example.com', phone: '+7 900 111-22-10', card: LibraryCard(number: 'LC-2026-010', issuedAt: DateTime(2026, 2, 14), expiresAt: DateTime(2028, 2, 14))),
 ];

@@ -1,10 +1,7 @@
 import 'package:flutter/foundation.dart';
 
-import '../models/author.dart';
-import '../models/book.dart';
-import '../repositories/author_repository.dart';
-import '../repositories/book_repository.dart';
 import 'load_status.dart';
+import 'paged_list_notifier.dart';
 
 class DetailNotifier<T> extends ChangeNotifier {
   DetailNotifier(this._loader);
@@ -29,7 +26,7 @@ class DetailNotifier<T> extends ChangeNotifier {
       _item = await _loader();
       _status = LoadStatus.success;
     } catch (e) {
-      _error = 'Не удалось загрузить запись: $e';
+      _error = 'Не удалось загрузить запись: ${describeError(e)}';
       _status = LoadStatus.error;
     }
     notifyListeners();
@@ -45,14 +42,4 @@ class DetailNotifier<T> extends ChangeNotifier {
     _disposed = true;
     super.dispose();
   }
-}
-
-class BookDetailNotifier extends DetailNotifier<Book> {
-  BookDetailNotifier(BookRepository repository, int id)
-      : super(() => repository.findById(id));
-}
-
-class AuthorDetailNotifier extends DetailNotifier<Author> {
-  AuthorDetailNotifier(AuthorRepository repository, int id)
-      : super(() => repository.findById(id));
 }

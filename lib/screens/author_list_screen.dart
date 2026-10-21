@@ -4,7 +4,8 @@ import 'package:provider/provider.dart';
 
 import '../models/author.dart';
 import '../models/author_query.dart';
-import '../state/author_list_notifier.dart';
+import '../state/paged_list_notifier.dart';
+import '../state/reference_notifier.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/entity_list_body.dart';
 import '../widgets/entity_table.dart';
@@ -25,6 +26,9 @@ class AuthorListScreen extends StatefulWidget {
 class _AuthorListScreenState extends State<AuthorListScreen> {
   AuthorQuery get _query => widget.query;
 
+  PagedListNotifier<Author, AuthorQuery> get _notifier =>
+      context.read<PagedListNotifier<Author, AuthorQuery>>();
+
   void _go(AuthorQuery next) => context.go(next.toLocation('/authors'));
 
   AuthorQuery get _resetQuery => AuthorQuery(
@@ -38,7 +42,7 @@ class _AuthorListScreenState extends State<AuthorListScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.read<AuthorListNotifier>().applyQuery(widget.query, force: true);
+      _notifier.applyQuery(widget.query, force: true);
     });
   }
 
@@ -48,13 +52,26 @@ class _AuthorListScreenState extends State<AuthorListScreen> {
     if (oldWidget.query != widget.query) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        context.read<AuthorListNotifier>().applyQuery(widget.query);
+        _notifier.applyQuery(widget.query);
       });
     }
   }
 
+  Future<void> _open(String location) async {
+    final changed = await context.push<bool>(location);
+    if (changed != true || !mounted) return;
+    await _notifier.load();
+    if (mounted) context.read<ReferenceNotifier>().load();
+  }
+
+  Future<String?> _afterChange(Future<String?> Function() operation) async {
+    final problem = await operation();
+    if (problem == null && mounted) context.read<ReferenceNotifier>().load();
+    return problem;
+  }
+
   Future<void> _deleteSelected() async {
-    final notifier = context.read<AuthorListNotifier>();
+    final notifier = _notifier;
     final messenger = ScaffoldMessenger.of(context);
     final confirmed = await confirmAction(
       context,
@@ -63,13 +80,16 @@ class _AuthorListScreenState extends State<AuthorListScreen> {
           'Будет удалено записей: ${notifier.selected.length}. Их можно восстановить.',
     );
     if (!confirmed) return;
-    final count = await notifier.deleteSelected();
-    messenger.showSnackBar(SnackBar(content: Text('Удалено записей: $count')));
+    final summary = await notifier.deleteSelected();
+    if (mounted) context.read<ReferenceNotifier>().load();
+    messenger.showSnackBar(
+      SnackBar(content: Text('Удалено записей: ${summary.deleted}')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final notifier = context.watch<AuthorListNotifier>();
+    final notifier = context.watch<PagedListNotifier<Author, AuthorQuery>>();
     final q = _query;
 
     return LibraryScaffold(
@@ -83,6 +103,8 @@ class _AuthorListScreenState extends State<AuthorListScreen> {
             activeFilterCount: q.activeFilterCount,
             initiallyOpen: q.activeFilterCount > 0,
             onReset: () => _go(_resetQuery),
+            addLabel: 'Добавить автора',
+            onAdd: () => _open('/authors/new'),
             filters: [
               DeletedSwitch(
                 value: q.includeDeleted,
@@ -142,14 +164,15 @@ class _AuthorListScreenState extends State<AuthorListScreen> {
                       field == _query.sortField ? !_query.sortAscending : true,
                 ),
               ),
-              onOpen: (a) => context.push('/authors/${a.id}'),
+              onOpen: (a) => _open('/authors/${a.id}'),
               actions: (a) => buildRowActions(
                 context,
                 deleted: a.isDeleted,
                 name: a.fullName,
-                onSoftDelete: () => notifier.softDelete(a.id),
-                onHardDelete: () => notifier.hardDelete(a.id),
-                onRestore: () => notifier.restore(a.id),
+                onEdit: () => _open('/authors/${a.id}/edit'),
+                onSoftDelete: () => _afterChange(() => notifier.softDelete(a.id)),
+                onHardDelete: () => _afterChange(() => notifier.hardDelete(a.id)),
+                onRestore: () => _afterChange(() => notifier.restore(a.id)),
               ),
               titleOf: (a) => a.fullName,
               subtitleOf: (a) => '${a.country} · ${a.birthYear} г. рождения',

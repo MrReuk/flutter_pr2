@@ -1,5 +1,5 @@
 name: library_app
-description: "Клиент библиотечной системы: каталог книг и авторов (практическая работа 2)."
+description: "Клиент библиотечной системы: каталог, формы и валидация, связи между сущностями (практическая работа 3)."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -13,6 +13,7 @@ dependencies:
     sdk: flutter
   go_router: ^17.5.0
   provider: ^6.1.5
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:

@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../models/book.dart';
 import '../models/book_query.dart';
-import '../state/book_list_notifier.dart';
+import '../state/paged_list_notifier.dart';
 import '../state/reference_notifier.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/debounced_text_field.dart';
@@ -29,6 +29,9 @@ class BookListScreen extends StatefulWidget {
 class _BookListScreenState extends State<BookListScreen> {
   BookQuery get _query => widget.query;
 
+  PagedListNotifier<Book, BookQuery> get _notifier =>
+      context.read<PagedListNotifier<Book, BookQuery>>();
+
   void _go(BookQuery next) => context.go(next.toLocation('/books'));
 
   BookQuery get _resetQuery => BookQuery(
@@ -42,7 +45,7 @@ class _BookListScreenState extends State<BookListScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.read<BookListNotifier>().applyQuery(widget.query, force: true);
+      _notifier.applyQuery(widget.query, force: true);
       context.read<ReferenceNotifier>().load();
     });
   }
@@ -53,13 +56,26 @@ class _BookListScreenState extends State<BookListScreen> {
     if (oldWidget.query != widget.query) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        context.read<BookListNotifier>().applyQuery(widget.query);
+        _notifier.applyQuery(widget.query);
       });
     }
   }
 
+  Future<void> _open(String location) async {
+    final changed = await context.push<bool>(location);
+    if (changed != true || !mounted) return;
+    await _notifier.load();
+    if (mounted) context.read<ReferenceNotifier>().load();
+  }
+
+  Future<String?> _afterChange(Future<String?> Function() operation) async {
+    final problem = await operation();
+    if (problem == null && mounted) context.read<ReferenceNotifier>().load();
+    return problem;
+  }
+
   Future<void> _deleteSelected() async {
-    final notifier = context.read<BookListNotifier>();
+    final notifier = _notifier;
     final messenger = ScaffoldMessenger.of(context);
     final confirmed = await confirmAction(
       context,
@@ -68,13 +84,16 @@ class _BookListScreenState extends State<BookListScreen> {
           'Будет удалено записей: ${notifier.selected.length}. Их можно восстановить.',
     );
     if (!confirmed) return;
-    final count = await notifier.deleteSelected();
-    messenger.showSnackBar(SnackBar(content: Text('Удалено записей: $count')));
+    final summary = await notifier.deleteSelected();
+    if (mounted) context.read<ReferenceNotifier>().load();
+    messenger.showSnackBar(
+      SnackBar(content: Text('Удалено записей: ${summary.deleted}')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final notifier = context.watch<BookListNotifier>();
+    final notifier = context.watch<PagedListNotifier<Book, BookQuery>>();
     final refs = context.watch<ReferenceNotifier>();
     final q = _query;
 
@@ -89,17 +108,19 @@ class _BookListScreenState extends State<BookListScreen> {
             activeFilterCount: q.activeFilterCount,
             initiallyOpen: q.activeFilterCount > 0,
             onReset: () => _go(_resetQuery),
+            addLabel: 'Добавить книгу',
+            onAdd: () => _open('/books/new'),
             filters: [
               IdDropdown(
                 label: 'Жанр',
                 value: q.genreId,
-                options: refs.genreOptions,
+                options: refs.genreOptions(),
                 onChanged: (value) => _go(_query.copyWith(genreId: value)),
               ),
               IdDropdown(
                 label: 'Издательство',
                 value: q.publisherId,
-                options: refs.publisherOptions,
+                options: refs.publisherOptions(),
                 onChanged: (value) => _go(_query.copyWith(publisherId: value)),
               ),
               SizedBox(
@@ -164,20 +185,18 @@ class _BookListScreenState extends State<BookListScreen> {
                 TableColumnSpec<Book>(
                   label: 'Название',
                   sortField: 'title',
-                  build: (b) => CellText(b.title, maxWidth: 240),
+                  build: (b) => CellText(b.title, maxWidth: 280),
                 ),
                 TableColumnSpec<Book>(
                   label: 'Авторы',
-                  build: (b) => CellText(refs.authorNames(b.authorIds), maxWidth: 170),
+                  build: (b) => CellText(refs.authorNames(b.authorIds)),
                 ),
                 TableColumnSpec<Book>(
                   label: 'Жанры',
-                  hideBelow: 1000,
                   build: (b) => CellText(refs.genreNames(b.genreIds), maxWidth: 200),
                 ),
                 TableColumnSpec<Book>(
                   label: 'Издательство',
-                  hideBelow: 1000,
                   build: (b) => Text(refs.publisherName(b.publisherId)),
                 ),
                 TableColumnSpec<Book>(
@@ -188,14 +207,12 @@ class _BookListScreenState extends State<BookListScreen> {
                 ),
                 TableColumnSpec<Book>(
                   label: 'Страниц',
-                  hideBelow: 760,
                   sortField: 'pages',
                   numeric: true,
                   build: (b) => Text('${b.pages}'),
                 ),
                 TableColumnSpec<Book>(
                   label: 'Экз.',
-                  hideBelow: 900,
                   numeric: true,
                   build: (b) => Text('${b.copiesAvailable}/${b.copiesTotal}'),
                 ),
@@ -214,14 +231,15 @@ class _BookListScreenState extends State<BookListScreen> {
                       field == _query.sortField ? !_query.sortAscending : true,
                 ),
               ),
-              onOpen: (b) => context.push('/books/${b.id}'),
+              onOpen: (b) => _open('/books/${b.id}'),
               actions: (b) => buildRowActions(
                 context,
                 deleted: b.isDeleted,
                 name: b.title,
-                onSoftDelete: () => notifier.softDelete(b.id),
-                onHardDelete: () => notifier.hardDelete(b.id),
-                onRestore: () => notifier.restore(b.id),
+                onEdit: () => _open('/books/${b.id}/edit'),
+                onSoftDelete: () => _afterChange(() => notifier.softDelete(b.id)),
+                onHardDelete: () => _afterChange(() => notifier.hardDelete(b.id)),
+                onRestore: () => _afterChange(() => notifier.restore(b.id)),
               ),
               titleOf: (b) => b.title,
               subtitleOf: (b) =>
